@@ -4,6 +4,50 @@
 
 The "Quack Quack" challenge involves a binary exploitation vulnerability in a program themed around ducks. This is a stack buffer overflow challenge with two key twists: exploiting the behavior of the `strstr()` function to leak stack data, and dealing with a partial overwrite of the return address due to limited write capability.
 
+When running the program normally, we see this:
+```
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⣀⣀⡀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠋⠁⠈⠉⠛⢻⣶⡀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⠋⠀⠀⠀⠀⠀⠀⠀⢹⡇⠀⠀⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡿⠁⠀⠀⢰⣿⠂⠀⢀⣤⣼⣿⡄⠀⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡿⠁⠀⠀⠀⠀⠀⣠⣶⠿⡛⡜⢿⣷⡀⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⡿⠁⠀⠀⠀⠀⢀⣾⡿⠿⠿⣷⣼⣢⢻⣿⡀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀⣼⠇⠀⠀⠀⠘⠻⣿⣤⣿⡃ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣿⠀⠀⠀⠀⠀⢰⡏⠀⠀⠀⠀⠀⠀⠈⠻⠟⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡟⠀⠀⠀⠀⠀ ⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ 
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⠇⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ 
+⢀⣤⣶⢶⣦⣤⣀⣀⣀⣄⣠⣤⣤⣤⣤⣤⣴⡾⢿⡄⠀⠀⠀⠀⠀⢸⡷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ 
+⢀⣾⠏⠀⠀⠈⠉⠉⠉⠉⠉⠉⠀⠀⠀⠀⠀⠀⠀⠈⢻⣆⡀⢀⣀⣤⠾⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣻⢿⠉⠀⠀⠈⠻⣷⣄⠀⠀⠀⠀⠀⠀⠀
+⠀⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡿⣽⣻⠀⠀⠀⠀⠀⠈⢻⣧⠀⠀⠀⠀⠀⠀
+⠀⠀⠹⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣻⢷⣿⠀⠀⠀⠀⠀⠀⠀⣿⡇⠀⠀⠀⠀⠀
+⠀⠀⠀⠙⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡷⣯⣿⢾⠀⠀⠀⠀⠀⠀⠀⢻⡇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠘⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⢿⡽⣟⡿⠀⠀⠀⠀⠀⠀⠀⢸⣇⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠸⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣯⣿⡽⣯⠇⠀⠀⠀⠀⠀⠀⠀⣸⡟⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢹⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠓⠋⠁⠀⠀⠀⠀⠀⠀⠀⢠⣿⠁⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢻⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⠿⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠈⢿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣦⡀⠀⠀⠀⠀⣀⣀⣀⠀⠀⠀⢀⡀⠀⠀⣀⣼⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⣶⣶⣶⣿⡟⠉⠛⠛⣶⠛⠛⢻⣿⣾⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢘⣿⢩⡙⣿⣄⠀⠀⠀⠀⠀⠀⣾⣏⢹⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⡟⢢⠱⡩⢿⣆⠀⠀⠀⠀⢸⣿⢄⠫⡹⠟⠿⣻⣷⣦⡀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣋⠬⢥⢣⡑⢎⣿⣦⠀⠀⠀⠀⠻⣯⣶⣡⢋⠖⡡⣾⣾⠗⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢾⣯⣴⣿⣶⡣⣼⣦⣙⣿⡆⠀⠀⠀⠀⠈⠛⠿⣾⣼⣷⣿⡿⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠀⠘⠿⠟⠛⠛⠋⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠋⠀⠀⠀⠀⠀⠀⠀⠀ 
+
+	~~ Quack Quack Duck Attack ~~
+
+
+Quack the Duck!
+
+> Quack Quack  ->>> my input
+Quack Quack , ready to fight the Duck?
+
+> let's fight ->>>> my input      
+Did you really expect to win a fight against a Duck?!
+```
+
+
 ## Binary Analysis
 
 Let's review the target binary's properties:
@@ -40,7 +84,11 @@ void duckling() {
   read(0, v3, 0x6a);  // Read up to 106 bytes into an 80-byte buffer
   puts("Did you really expect to win a fight against a Duck?!\n");
 }
-```
+
+
+
+
+
 
 The program also contains an unconnected `duck_attack()` function that reads and outputs the content of "flag.txt".
 
@@ -105,6 +153,16 @@ Memory Layout:
                    |             +-- Where v1+32 points to with the right offset
                    +-- Where our "Quack Quack " is placed
 ```
+
+This is what the leak would look like in the program.
+```
+> Quack Quack  
+Quack Quack <leak, e.g. \x56\x76A\xff >, ready to fight the Duck?
+```
+
+
+
+
 
 ### Step 2: Extracting and Using the Canary
 
